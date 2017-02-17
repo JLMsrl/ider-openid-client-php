@@ -2,22 +2,12 @@
 
 /**
  *
- * Copyright MITRE 2016
+ * Copyright IDER 2017
  *
- * OpenIDConnectClient for PHP5
- * Author: Michael Jett <mjett@mitre.org>
+ * IDEROpenIDConnectClient for PHP5
+ * Author: Davide Lattanzio <info@dualweb.it>
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain
- * a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * Based on OpenIDConnectClient for PHP5 by Michael Jett
  *
  */
 
@@ -91,8 +81,18 @@ if (!function_exists('json_decode')) {
  * Please note this class stores nonces in $_SESSION['openid_connect_nonce']
  *
  */
-class OpenIDConnectClient
+class IDEROpenIDClient
 {
+
+    /**
+     * @var string IDER server
+     */
+    static $IDERServer = 'https://oid.ider.com/core';
+
+    /**
+     * @var string IDER server
+     */
+    static $IDERRedirectURL = 'Callback';
 
     /**
      * @var string arbitrary id value
@@ -162,15 +162,16 @@ class OpenIDConnectClient
     /**
      * @param $provider_url string optional
      *
-     * @param $client_id string optional
-     * @param $client_secret string optional
+     * @param $client_id string
+     * @param $client_secret string
      *
      */
-    public function __construct($provider_url = null, $client_id = null, $client_secret = null)
+    public function __construct($client_id, $client_secret)
     {
-        $this->setProviderURL($provider_url);
-        $this->clientID = $client_id;
-        $this->clientSecret = $client_secret;
+        $this->setProviderURL(static::$IDERServer);
+        $this->setRedirectURL($this->getBaseUrl() . static::$IDERRedirectURL);
+        $this->setClientID($client_id);
+        $this->setClientSecret($client_secret);
     }
 
     /**
@@ -296,11 +297,9 @@ class OpenIDConnectClient
         // This is also known as auto "discovery"
         if (!isset($this->providerConfig[$param])) {
             $well_known_config_url = rtrim($this->getProviderURL(), "/") . "/.well-known/openid-configuration";
-            $value = json_decode($this->fetchURL($well_known_config_url))->{$param};
+            $this->providerConfig = (array)json_decode($this->fetchURL($well_known_config_url));
 
-            if ($value) {
-                $this->providerConfig[$param] = $value;
-            } else {
+            if (!$this->providerConfig[$param]) {
                 throw new OpenIDConnectClientException("The provider {$param} has not been set. Make sure your provider has a well known configuration available.");
             }
 
@@ -334,7 +333,19 @@ class OpenIDConnectClient
         }
 
         // Other-wise return the URL of the current page
+        $currentUrl = $this->getBaseUrl() . substr(1, $_SERVER['REQUEST_URI']);
 
+        return $currentUrl;
+    }
+
+
+    /**
+     * Used for arbitrary value generation for nonces and state
+     *
+     * @return string
+     */
+    protected function getBaseUrl()
+    {
         /**
          * Thank you
          * http://stackoverflow.com/questions/189113/how-do-i-get-current-page-full-url-in-php-on-a-windows-iis-server
@@ -383,11 +394,9 @@ class OpenIDConnectClient
 
         $base_page_url = $protocol . '://' . $hostname . ($useport ? (':' . $port) : '');
 
-        $tmp = explode("?", $_SERVER['REQUEST_URI']);
-        $base_page_url .= $tmp[0];
-
-        return $base_page_url;
+        return $base_page_url . "/";
     }
+
 
     /**
      * Used for arbitrary value generation for nonces and state
@@ -420,9 +429,9 @@ class OpenIDConnectClient
 
         $auth_params = array_merge($this->authParams, array(
             'response_type' => $response_type,
-            'response_mode' => "form_post",
+//            'response_mode' => "form_post",
             'redirect_uri' => $this->getRedirectURL(),
-            'client_id' => $this->clientID,
+            'client_id' => $this->getClientID(),
             'nonce' => $nonce,
             'state' => $state,
             'scope' => 'openid'
@@ -645,17 +654,19 @@ class OpenIDConnectClient
     public function requestUserInfo($attribute = null)
     {
 
-        $user_info_endpoint = $this->getProviderConfigValue("userinfo_endpoint");
-        $schema = 'openid';
+        if (empty($this->userInfo)) {
+            $user_info_endpoint = $this->getProviderConfigValue("userinfo_endpoint");
+            $schema = 'openid';
 
-        $user_info_endpoint .= "?schema=" . $schema;
+            $user_info_endpoint .= "?schema=" . $schema;
 
-        //The accessToken has to be send in the Authorization header, so we create a new array with only this header.
-        $headers = array("Authorization: Bearer {$this->accessToken}");
+            //The accessToken has to be send in the Authorization header, so we create a new array with only this header.
+            $headers = array("Authorization: Bearer {$this->accessToken}");
 
-        $user_json = json_decode($this->fetchURL($user_info_endpoint, null, $headers));
+            $user_json = json_decode($this->fetchURL($user_info_endpoint, null, $headers));
 
-        $this->userInfo = $user_json;
+            $this->userInfo = $user_json;
+        }
 
         if ($attribute === null) {
             return $this->userInfo;
