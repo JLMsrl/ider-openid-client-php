@@ -1,0 +1,11 @@
+{
+    "name": "dannoso/ider-openid-client-php",
+    "description": "IDER OpenID Generic Client for PHP",
+    "require": {
+        "php": ">=5.6",
+        "jumbojett/openid-connect-php": "^0.2.0"
+    },
+    "autoload": {
+        "classmap": ["IDEROpenIDClient.php"]
+    }
+}
