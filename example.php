@@ -25,15 +25,13 @@ require "../../autoload.php";
 
 define('CLIENTID', 'AnyJLMPartner');
 define('SECRET', '!!JLM.2016!!');
-define('SCOPE', 'Xgox');
+define('SCOPE', 'openid Xgox');
 
 
 $iderconnect = new IDEROpenIDClient(CLIENTID, SECRET, SCOPE);
 $iderconnect->addSCope(SCOPE);
 
 $iderconnect->authenticate();
-
-$fullname = $oidc->requestUserInfo('given_name') . ' ' . $oidc->requestUserInfo('family_name');
 
 
 ?>
@@ -49,9 +47,10 @@ $fullname = $oidc->requestUserInfo('given_name') . ' ' . $oidc->requestUserInfo(
 </head>
 <body>
 
-<div>
-    Hello <?php echo $fullname; ?>
-</div>
+
+<pre>
+    <?php print_r($iderconnect->requestUserInfo()); ?>
+</pre>
 
 </body>
 </html>
