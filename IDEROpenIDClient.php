@@ -11,25 +11,6 @@
  *
  */
 
-/**
- * Use session to manage a nonce
- */
-if (!isset($_SESSION)) {
-    session_start();
-}
-
-/**
- *
- * JWT signature verification support by Jonathan Reed <jdreed@mit.edu>
- * Licensed under the same license as the rest of this file.
- *
- * phpseclib is required to validate the signatures of some tokens.
- * It can be downloaded from: http://phpseclib.sourceforge.net/
- */
-
-if (!class_exists('\phpseclib\Crypt\RSA')) {
-    user_error('Unable to find phpseclib Crypt/RSA.php.  Ensure phpseclib is installed and in include_path');
-}
 
 /**
  * A wrapper around base64_decode which decodes Base64URL-encoded data,
@@ -66,15 +47,6 @@ class OpenIDConnectClientException extends Exception
 
 }
 
-/**
- * Require the CURL and JSON PHP extentions to be installed
- */
-if (!function_exists('curl_init')) {
-    throw new OpenIDConnectClientException('OpenIDConnect needs the CURL PHP extension.');
-}
-if (!function_exists('json_decode')) {
-    throw new OpenIDConnectClientException('OpenIDConnect needs the JSON PHP extension.');
-}
 
 /**
  *
@@ -166,12 +138,46 @@ class IDEROpenIDClient
      * @param $client_secret string
      *
      */
-    public function __construct($client_id, $client_secret)
+    public function __construct($client_id, $client_secret, $scopes = null)
     {
         $this->setProviderURL(static::$IDERServer);
         $this->setRedirectURL($this->getBaseUrl() . static::$IDERRedirectURL);
         $this->setClientID($client_id);
         $this->setClientSecret($client_secret);
+
+        $this->boot();
+
+        if (!is_null($scopes)) {
+            $this->addScope($scopes);
+        }
+    }
+
+    private function boot()
+    {
+        session_start();
+
+        /**
+         * Require the CURL and JSON PHP extentions to be installed
+         */
+        if (!function_exists('curl_init')) {
+            throw new OpenIDConnectClientException('OpenIDConnect needs the CURL PHP extension.');
+        }
+        if (!function_exists('json_decode')) {
+            throw new OpenIDConnectClientException('OpenIDConnect needs the JSON PHP extension.');
+        }
+
+        /**
+         *
+         * JWT signature verification support by Jonathan Reed <jdreed@mit.edu>
+         * Licensed under the same license as the rest of this file.
+         *
+         * phpseclib is required to validate the signatures of some tokens.
+         * It can be downloaded from: http://phpseclib.sourceforge.net/
+         */
+        if (!class_exists('\phpseclib\Crypt\RSA')) {
+            user_error('Unable to find phpseclib Crypt/RSA.php.  Ensure phpseclib is installed and in include_path');
+        }
+
     }
 
     /**
