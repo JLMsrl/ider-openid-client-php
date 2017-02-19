@@ -9,23 +9,29 @@ namespace IDERConnect;
 class IDERHelpers
 {
 
-    static function logRotate($text, $filename, $ext = 'log')
+    static function logRotate($text, $fullpath)
     {
-        $text = "[" .strftime("%Y-%m-%d %H:%M:%S") . "] " . $text . "\n";
+        $text = "[" . strftime("%Y-%m-%d %H:%M:%S") . "] " . $text . "\n";
 
-        // add basepath
-        $filename = $filename;
+        $fileparts = pathinfo($fullpath);
 
-        // add the point
-        $ext = '.' . $ext;
+        $ext = '.' . $fileparts['extension'];
+        $filename = $fileparts['filename'];
+        $dirname = $fileparts['dirname'];
 
-        if (!file_exists($filename . $ext)) {
-            touch($filename . $ext);
-            chmod($filename . $ext, 0666);
+
+        if (!is_dir($fileparts['dirname'])) {
+            mkdir($dirname, true);
         }
 
-        // 2 mb
-        if (filesize($filename . $ext) > 5 * 1024 * 1024) {
+
+        if (!file_exists($fullpath)) {
+            touch($fullpath);
+            chmod($fullpath, 0666);
+        }
+
+        // 5 mb
+        if (@filesize($fullpath) > 5 * 1024 * 1024) {
 
             // search for available filename
             $n = 1;
@@ -33,23 +39,23 @@ class IDERHelpers
                 $n++;
             }
 
-            rename($filename . $ext, $filename . '.' . $n . $ext);
+            rename($fullpath, $filename . '.' . $n . $ext);
 
-            touch($filename . $ext);
-            chmod($filename . $ext, 0666);
+            touch($fullpath);
+            chmod($fullpath, 0666);
         }
 
 
-        if (!is_writable($filename . $ext)) {
+        if (!is_writable($fullpath)) {
             error_log("Cannot open log file ($filename$ext)");
         }
 
-        if (!$handle = fopen($filename . $ext, 'a')) {
-            echo "Cannot open file ($filename$ext)";
+        if (!$handle = fopen($fullpath, 'a')) {
+            echo "Cannot open file (" . $fullpath . ")";
         }
 
         if (fwrite($handle, $text) === FALSE) {
-            echo "Cannot write to file ($filename$ext)";
+            echo "Cannot write to file (" . $fullpath . ")";
         }
 
         fclose($handle);
