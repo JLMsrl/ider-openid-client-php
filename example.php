@@ -21,7 +21,10 @@
  *
  */
 
-require "../../autoload.php";
+require "vendor/autoload.php";
+
+use IDERConnect\IDEROpenIDClient;
+
 
 define('CLIENTID', 'AnyJLMPartner');
 define('SECRET', '!!JLM.2016!!');
