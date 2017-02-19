@@ -11,42 +11,7 @@
  *
  */
 
-
-/**
- * A wrapper around base64_decode which decodes Base64URL-encoded data,
- * which is not the same alphabet as base64.
- */
-function base64url_decode($base64url)
-{
-    return base64_decode(b64url2b64($base64url));
-}
-
-/**
- * Per RFC4648, "base64 encoding with URL-safe and filename-safe
- * alphabet".  This just replaces characters 62 and 63.  None of the
- * reference implementations seem to restore the padding if necessary,
- * but we'll do it anyway.
- *
- */
-function b64url2b64($base64url)
-{
-    // "Shouldn't" be necessary, but why not
-    $padding = strlen($base64url) % 4;
-    if ($padding > 0) {
-        $base64url .= str_repeat("=", 4 - $padding);
-    }
-    return strtr($base64url, '-_', '+/');
-}
-
-
-/**
- * OpenIDConnect Exception Class
- */
-class OpenIDConnectClientException extends Exception
-{
-
-}
-
+namespace IDERConnect;
 
 /**
  *
@@ -65,6 +30,11 @@ class IDEROpenIDClient
      * @var string IDER server
      */
     static $IDERRedirectURL = 'Callback';
+
+    /**
+     * @var string IDER server
+     */
+    static $IDERLogFile = './log/ider-connect.log';
 
     /**
      * @var string arbitrary id value
@@ -140,6 +110,10 @@ class IDEROpenIDClient
      */
     public function __construct($client_id, $client_secret, $scopes = null)
     {
+        IDERHelpers::logRotate('======= IDer boot ======', static::$IDERLogFile);
+        IDERHelpers::logRotate('Called url: ' . $this->getRedirectURL(), static::$IDERLogFile);
+
+
         $this->setProviderURL(static::$IDERServer);
         $this->setRedirectURL($this->getBaseUrl() . static::$IDERRedirectURL);
         $this->setClientID($client_id);
@@ -150,11 +124,16 @@ class IDEROpenIDClient
         if (!is_null($scopes)) {
             $this->addScope($scopes);
         }
+
+        IDERHelpers::logRotate('Booted', static::$IDERLogFile);
     }
 
     private function boot()
     {
         session_start();
+
+        IDERHelpers::logRotate('Session start', static::$IDERLogFile);
+
 
         /**
          * Require the CURL and JSON PHP extentions to be installed
@@ -177,6 +156,8 @@ class IDEROpenIDClient
         if (!class_exists('\phpseclib\Crypt\RSA')) {
             user_error('Unable to find phpseclib Crypt/RSA.php.  Ensure phpseclib is installed and in include_path');
         }
+
+        IDERHelpers::logRotate('Libraries check passed', static::$IDERLogFile);
 
     }
 
@@ -202,6 +183,8 @@ class IDEROpenIDClient
      */
     public function authenticate()
     {
+        IDERHelpers::logRotate('autenticate()', static::$IDERLogFile);
+
 
         // Do a preemptive check to see if the provider has thrown an error from a previous redirect
         if (isset($_REQUEST['error'])) {
@@ -210,6 +193,7 @@ class IDEROpenIDClient
 
         // If we have an authorization code then proceed to request a token
         if (isset($_REQUEST["code"])) {
+            IDERHelpers::logRotate('Request code set', static::$IDERLogFile);
 
             $code = $_REQUEST["code"];
             $token_json = $this->requestTokens($code);
@@ -239,11 +223,14 @@ class IDEROpenIDClient
                     throw new OpenIDConnectClientException ("Unable to verify signature");
                 }
             } else {
+                IDERHelpers::logRotate('Warning: JWT signature verification unavailable.', static::$IDERLogFile);
+
                 user_error("Warning: JWT signature verification unavailable.");
             }
 
             // If this is a valid claim
             if ($this->verifyJWTclaims($claims)) {
+                IDERHelpers::logRotate('JWTclaims verified', static::$IDERLogFile);
 
                 // Clean up the session a little
                 unset($_SESSION['openid_connect_nonce']);
@@ -265,6 +252,7 @@ class IDEROpenIDClient
             }
 
         } else {
+            IDERHelpers::logRotate('Request code NOT set', static::$IDERLogFile);
 
             $this->requestAuthorization();
             return false;
@@ -278,6 +266,7 @@ class IDEROpenIDClient
     public function addScope($scope)
     {
         $this->scopes = array_merge($this->scopes, (array)$scope);
+        IDERHelpers::logRotate('Scope set to: ' . implode(' ', $this->scopes), static::$IDERLogFile);
     }
 
     /**
@@ -298,12 +287,16 @@ class IDEROpenIDClient
      */
     private function getProviderConfigValue($param)
     {
+        IDERHelpers::logRotate('getProviderConfigValue()', static::$IDERLogFile);
 
         // If the configuration value is not available, attempt to fetch it from a well known config endpoint
         // This is also known as auto "discovery"
         if (!isset($this->providerConfig[$param])) {
             $well_known_config_url = rtrim($this->getProviderURL(), "/") . "/.well-known/openid-configuration";
             $this->providerConfig = (array)json_decode($this->fetchURL($well_known_config_url));
+
+            IDERHelpers::logRotate('Discovery: ' . print_r($this->providerConfig, 1), static::$IDERLogFile);
+
 
             if (!$this->providerConfig[$param]) {
                 throw new OpenIDConnectClientException("The provider {$param} has not been set. Make sure your provider has a well known configuration available.");
@@ -320,6 +313,8 @@ class IDEROpenIDClient
      */
     public function setRedirectURL($url)
     {
+        IDERHelpers::logRotate('Set redirect url: ' . $url, static::$IDERLogFile);
+
         if (filter_var($url, FILTER_VALIDATE_URL) !== false) {
             $this->redirectURL = $url;
         }
@@ -339,7 +334,7 @@ class IDEROpenIDClient
         }
 
         // Other-wise return the URL of the current page
-        $currentUrl = $this->getBaseUrl() . substr(1, $_SERVER['REQUEST_URI']);
+        $currentUrl = $this->getBaseUrl() . substr($_SERVER['REQUEST_URI'], 1);
 
         return $currentUrl;
     }
@@ -420,6 +415,7 @@ class IDEROpenIDClient
      */
     private function requestAuthorization()
     {
+        IDERHelpers::logRotate('requestAuthorization()', static::$IDERLogFile);
 
         $auth_endpoint = $this->getProviderConfigValue("authorization_endpoint");
         $response_type = "code";
@@ -432,6 +428,10 @@ class IDEROpenIDClient
         // State essentially acts as a session key for OIDC
         $state = $this->generateRandString();
         $_SESSION['openid_connect_state'] = $state;
+
+        IDERHelpers::logRotate('set state: ' . $state, static::$IDERLogFile);
+        IDERHelpers::logRotate('set nonce: ' . $nonce, static::$IDERLogFile);
+
 
         $auth_params = array_merge($this->authParams, array(
             'response_type' => $response_type,
@@ -468,6 +468,8 @@ class IDEROpenIDClient
      */
     private function requestTokens($code)
     {
+        IDERHelpers::logRotate('requestToken()', static::$IDERLogFile);
+
         $token_endpoint = $this->getProviderConfigValue("token_endpoint");
         $token_endpoint_auth_methods_supported = $this->getProviderConfigValue("token_endpoint_auth_methods_supported");
 
@@ -553,6 +555,8 @@ class IDEROpenIDClient
      */
     private function verifyRSAJWTsignature($hashtype, $key, $payload, $signature)
     {
+        IDERHelpers::logRotate('verifyRSAJWTsignature()', static::$IDERLogFile);
+
         if (!class_exists('\phpseclib\Crypt\RSA')) {
             throw new OpenIDConnectClientException('Crypt_RSA support unavailable.');
         }
@@ -564,8 +568,8 @@ class IDEROpenIDClient
            regular base64 and use the XML key format for simplicity.
         */
         $public_key_xml = "<RSAKeyValue>\r\n" .
-            "  <Modulus>" . b64url2b64($key->n) . "</Modulus>\r\n" .
-            "  <Exponent>" . b64url2b64($key->e) . "</Exponent>\r\n" .
+            "  <Modulus>" . IDERHelpers::b64url2b64($key->n) . "</Modulus>\r\n" .
+            "  <Exponent>" . IDERHelpers::b64url2b64($key->e) . "</Exponent>\r\n" .
             "</RSAKeyValue>";
         $rsa = new \phpseclib\Crypt\RSA();
         $rsa->setHash($hashtype);
@@ -581,9 +585,11 @@ class IDEROpenIDClient
      */
     private function verifyJWTsignature($jwt)
     {
+        IDERHelpers::logRotate('verifyJWTsignature()', static::$IDERLogFile);
+
         $parts = explode(".", $jwt);
-        $signature = base64url_decode(array_pop($parts));
-        $header = json_decode(base64url_decode($parts[0]));
+        $signature = IDERHelpers::base64url_decode(array_pop($parts));
+        $header = json_decode(IDERHelpers::base64url_decode($parts[0]));
         $payload = implode(".", $parts);
         $jwks = json_decode($this->fetchURL($this->getProviderConfigValue('jwks_uri')));
         if ($jwks === NULL) {
@@ -599,6 +605,9 @@ class IDEROpenIDClient
                 $verified = $this->verifyRSAJWTsignature($hashtype,
                     $this->get_key_for_header($jwks->keys, $header),
                     $payload, $signature);
+
+                IDERHelpers::logRotate('Signature verification: ' . ($verified == true ? 'ok' : 'err'), static::$IDERLogFile);
+
                 break;
             default:
                 throw new OpenIDConnectClientException('No support for signature type: ' . $header->alg);
@@ -612,6 +621,8 @@ class IDEROpenIDClient
      */
     private function verifyJWTclaims($claims)
     {
+        IDERHelpers::logRotate('verifyJWTclaims()', static::$IDERLogFile);
+
         return (($claims->iss == $this->getProviderURL())
             && (($claims->aud == $this->clientID) || (in_array($this->clientID, $claims->aud)))
             && ($claims->nonce == $_SESSION['openid_connect_nonce']));
@@ -625,9 +636,10 @@ class IDEROpenIDClient
      */
     private function decodeJWT($jwt, $section = 0)
     {
+        IDERHelpers::logRotate('decodeJWT()', static::$IDERLogFile);
 
         $parts = explode(".", $jwt);
-        return json_decode(base64url_decode($parts[$section]));
+        return json_decode(IDERHelpers::base64url_decode($parts[$section]));
     }
 
     /**
@@ -659,6 +671,7 @@ class IDEROpenIDClient
      */
     public function requestUserInfo($attribute = null)
     {
+        IDERHelpers::logRotate('requestUserInfo()', static::$IDERLogFile);
 
         if (empty($this->userInfo)) {
             $user_info_endpoint = $this->getProviderConfigValue("userinfo_endpoint");
@@ -672,6 +685,9 @@ class IDEROpenIDClient
             $user_json = json_decode($this->fetchURL($user_info_endpoint, null, $headers));
 
             $this->userInfo = $user_json;
+
+            IDERHelpers::logRotate('Request: ' . print_r($this->userInfo, 1), static::$IDERLogFile);
+
         }
 
         if ($attribute === null) {
@@ -692,6 +708,9 @@ class IDEROpenIDClient
      */
     protected function fetchURL($url, $post_body = null, $headers = array())
     {
+        IDERHelpers::logRotate('fetchURL(): ' . $url, static::$IDERLogFile);
+        IDERHelpers::logRotate('Request headers: ' . print_r($headers, 1), static::$IDERLogFile);
+        IDERHelpers::logRotate('Request body: ' . print_r($post_body, 1), static::$IDERLogFile);
 
 
         // OK cool - then let's create a new cURL resource handle
@@ -759,6 +778,7 @@ class IDEROpenIDClient
         // Close the cURL resource, and free system resources
         curl_close($ch);
 
+        IDERHelpers::logRotate('Response: ' . print_r($output, 1), static::$IDERLogFile);
         return $output;
     }
 
@@ -781,6 +801,8 @@ class IDEROpenIDClient
      */
     public function redirect($url)
     {
+        IDERHelpers::logRotate('Redirect to: ' . $url, static::$IDERLogFile);
+
         header('Location: ' . $url);
         exit;
     }
