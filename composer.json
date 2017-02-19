@@ -1,13 +1,22 @@
 {
     "name": "dannoso/ider-openid-client-php",
     "description": "IDER OpenID Generic Client for PHP",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Davide Lattanzio",
+            "email": "davide.lattanzio@ider.com",
+            "homepage": "http://ider.com"
+        }
+    ],
     "require": {
-        "php": ">=5.2",
+        "php": ">=5.3",
         "phpseclib/phpseclib" : "2.0.1",
         "ext-json": "*",
         "ext-curl": "*"
     },
+    "minimum-stability": "dev",
     "autoload": {
-        "classmap": ["IDEROpenIDClient.php"]
+        "psr-4": { "IDERConnect\\": "src/" }
     }
 }
