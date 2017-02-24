@@ -277,6 +277,14 @@ class IDEROpenIDClient
     }
 
     /**
+     * @param $scope
+     */
+    public function clearScopes()
+    {
+        $this->scopes = null;
+    }
+
+    /**
      * @param $param - example: prompt=login
      */
     public function addAuthParam($param)
