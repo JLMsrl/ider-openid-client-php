@@ -22,9 +22,14 @@ class IDEROpenIDClient
 {
 
     /**
-     * @var string IDER server
+     * @var string Last Instance
      */
     static $IDERServer = 'https://oid.ider.com/core';
+
+    /**
+     * @var string IDER server
+     */
+    static $_instance;
 
     /**
      * @var string IDER server
@@ -124,6 +129,8 @@ class IDEROpenIDClient
         if (!is_null($scopes)) {
             $this->addScope($scopes);
         }
+
+        self::$_instance = $this;
 
         IDERHelpers::logRotate('Booted', static::$IDERLogFile);
     }
