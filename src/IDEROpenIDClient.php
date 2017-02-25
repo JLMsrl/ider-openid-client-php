@@ -34,6 +34,12 @@ class IDEROpenIDClient
     /**
      * @var string IDER server
      */
+    static $defaultScope = 'openid';
+
+
+    /**
+     * @var string IDER server
+     */
     static $IDERRedirectURL = 'callback';
 
     /**
@@ -126,11 +132,13 @@ class IDEROpenIDClient
 
         $this->boot();
 
+        // set scope to default
+        $this->resetScopes();
+
         if (!is_null($scopes)) {
             $this->addScope($scopes);
         }
 
-        self::$_instance = $this;
 
         IDERHelpers::logRotate('Booted', static::$IDERLogFile);
     }
@@ -200,7 +208,7 @@ class IDEROpenIDClient
 
         // If we have an authorization code then proceed to request a token
         if (isset($_REQUEST["code"])) {
-            IDERHelpers::logRotate('Request code set', static::$IDERLogFile);
+            IDERHelpers::logRotate('Request code IS set', static::$IDERLogFile);
 
             $code = $_REQUEST["code"];
             $token_json = $this->requestTokens($code);
@@ -259,7 +267,7 @@ class IDEROpenIDClient
             }
 
         } else {
-            IDERHelpers::logRotate('Request code NOT set', static::$IDERLogFile);
+            IDERHelpers::logRotate('Request code IS NOT set', static::$IDERLogFile);
 
             $this->requestAuthorization();
             return false;
@@ -279,9 +287,22 @@ class IDEROpenIDClient
     /**
      * @param $scope
      */
-    public function clearScopes()
+    public function resetScopes($addDefault = true)
     {
-        $this->scopes = null;
+        if ($addDefault && !is_null(self::$defaultScope)) {
+            $this->scopes = [self::$defaultScope];
+        }
+        IDERHelpers::logRotate('Scope reset to: ' . implode(' ', $this->scopes), static::$IDERLogFile);
+    }
+
+    /**
+     * @param $scope - example: openid, given_name, etc...
+     */
+    public function setScope($scope, $addDefault = true)
+    {
+        $this->resetScopes($addDefault);
+        $this->addScope($scope);
+        IDERHelpers::logRotate('Scope set to: ' . implode(' ', $this->scopes), static::$IDERLogFile);
     }
 
     /**
