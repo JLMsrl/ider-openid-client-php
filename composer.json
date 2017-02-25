@@ -1,12 +1,12 @@
 {
-    "name": "dannoso/ider-openid-client-php",
+    "name": "jlmsrl/ider-openid-client-php",
     "description": "IDER OpenID Generic Client for PHP",
     "type": "library",
     "authors": [
         {
             "name": "Davide Lattanzio",
-            "email": "davide.lattanzio@ider.com",
-            "homepage": "http://ider.com"
+            "email": "davide.lattanzio@jlm.srl",
+            "homepage": "https://ider.com"
         }
     ],
     "require": {
