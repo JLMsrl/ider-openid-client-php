@@ -806,6 +806,9 @@ class IDEROpenIDClient
 
         // Timeout in seconds
         curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        
+        // Force IPV4
+        curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4 );
 
         // Download the given URL, and return output
         $output = curl_exec($ch);
