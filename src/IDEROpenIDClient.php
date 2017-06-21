@@ -39,7 +39,7 @@ class IDEROpenIDClient
      /**
      * @var string IDER server
      */
-    static $IDEButtonURL = 'iderbutton';
+    static $IDERButtonURL = 'iderbutton';
 
     /**
      * @var string IDER server
