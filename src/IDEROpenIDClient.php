@@ -149,7 +149,9 @@ class IDEROpenIDClient
 
     private function boot()
     {
-        session_start();
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
 
         IDERHelpers::logRotate('Session start', static::$IDERLogFile);
 
