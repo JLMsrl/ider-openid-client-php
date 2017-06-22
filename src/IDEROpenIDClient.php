@@ -39,7 +39,7 @@ class IDEROpenIDClient
      /**
      * @var string IDER server
      */
-    static $IDEButtonURL = 'iderbutton';
+    static $IDERButtonURL = 'iderbutton';
 
     /**
      * @var string IDER server
@@ -149,7 +149,9 @@ class IDEROpenIDClient
 
     private function boot()
     {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         IDERHelpers::logRotate('Session start', static::$IDERLogFile);
 
