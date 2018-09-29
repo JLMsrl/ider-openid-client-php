@@ -431,6 +431,8 @@ class IDEROpenIDClient
             $hostname = $_SERVER['SERVER_ADDR'];
         }
 
+        $hostname = preg_replace('/:[0-9]+/', '', $hostname);
+
         $useport = ($protocol === 'https' && $port !== 443) || ($protocol === 'http' && $port !== 80);
 
         $base_page_url = $protocol . '://' . $hostname . ($useport ? (':' . $port) : '');
