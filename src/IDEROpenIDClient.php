@@ -402,6 +402,7 @@ class IDEROpenIDClient
         $port = null;
         $hostname = null;
         $setport = null;
+        $uri = strtok($_SERVER["REQUEST_URI"],'?'); // removed query string
 
         if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
             $protocol = $_SERVER['HTTP_X_FORWARDED_PROTO'];
@@ -431,11 +432,13 @@ class IDEROpenIDClient
             $hostname = $_SERVER['SERVER_ADDR'];
         }
 
+        $hostname = preg_replace('/:[0-9]+/', '', $hostname);
+
         $useport = ($protocol === 'https' && $port !== 443) || ($protocol === 'http' && $port !== 80);
 
-        $base_page_url = $protocol . '://' . $hostname . ($useport ? (':' . $port) : '');
+        $base_page_url = $protocol . '://' . $hostname . ($useport ? (':' . $port) : '') . $uri;
 
-        return $base_page_url . "/";
+        return $base_page_url;
     }
 
 
