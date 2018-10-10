@@ -22,6 +22,11 @@ class IDEROpenIDClient
 {
 
     /**
+     * Overridable base URL.
+     */
+    static $BaseUrl;
+
+    /**
      * @var string Last Instance
      */
     static $IDERServer = 'https://oid.ider.com/core';
@@ -201,14 +206,6 @@ class IDEROpenIDClient
     public function setResponseTypes($response_types)
     {
         $this->responseTypes = array_merge($this->responseTypes, (array)$response_types);
-    }
-
-    /**
-     * @param $baseUrl
-     */
-    public function setBaseUrl($baseUrl)
-    {
-        $this->baseUrl = $baseUrl;
     }
 
     /**
@@ -402,8 +399,8 @@ class IDEROpenIDClient
     {
 
         // If the base URL is set, then use it.
-        if($this->baseUrl){
-            return $this->baseUrl;
+        if(static::$BaseUrl){
+            return rtrim(static::$BaseUrl, '/') . '/';
         }
 
         /**
