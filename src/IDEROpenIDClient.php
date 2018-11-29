@@ -136,7 +136,7 @@ class IDEROpenIDClient
     public function __construct($client_id, $client_secret, $scopes = null)
     {
         IDERHelpers::logRotate('======= IDer boot ======', static::$IDERLogFile);
-        IDERHelpers::logRotate('Called url: ' . $this->getRedirectURL(), static::$IDERLogFile);
+        IDERHelpers::logRotate('Called url: ' . $this->getRedirectURL(false), static::$IDERLogFile);
 
 
         $this->setProviderURL(static::$IDERServer);
@@ -375,7 +375,7 @@ class IDEROpenIDClient
      *
      * @return string
      */
-    public function getRedirectURL()
+    public function getRedirectURL($overwritten = true)
     {
 
         // If the redirect URL has been set then return it.
@@ -384,7 +384,7 @@ class IDEROpenIDClient
         }
 
         // Other-wise return the URL of the current page
-        $currentUrl = $this->getBaseUrl() . substr($_SERVER['REQUEST_URI'], 1);
+        $currentUrl = $this->getBaseUrl($overwritten) . substr($_SERVER['REQUEST_URI'], 1);
 
         return $currentUrl;
     }
@@ -395,11 +395,11 @@ class IDEROpenIDClient
      *
      * @return string
      */
-    protected function getBaseUrl()
+    protected function getBaseUrl($overwritten = true)
     {
 
         // If the base URL is set, then use it.
-        if(static::$BaseUrl){
+        if(static::$BaseUrl && $overwritten){
             return rtrim(static::$BaseUrl, '/') . '/';
         }
 
