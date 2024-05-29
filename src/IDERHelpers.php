@@ -172,9 +172,13 @@ class IDERHelpers
                     foreach ($us_ranges as $us_range) {
                         if ($user_zip_code >= $us_range[0] && $user_zip_code <= $us_range[1]) {
                             // improper, but it will do it
-                            $userinfo['address']['country'] = $us_state;
+                            $userinfo['address']['state'] = $us_state;
                         }
                     }
+                }
+            } else {
+                if (key_exists('region', $userinfo['address'])) {
+                    $userinfo['address']['state'] = $userinfo['address']['region'];
                 }
             }
 
