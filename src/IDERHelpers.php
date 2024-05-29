@@ -185,4 +185,33 @@ class IDERHelpers
             return $userinfo;
         }
     }
+
+    /**
+     * Convert object to array.
+     */
+    static function toArray($data) 
+    {
+        if (is_object($data)) {
+            $data = get_object_vars($data);
+        }
+    
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                if (is_string($value) && self::isJSON($value)) {
+                    $data[$key] = json_decode($value, true);
+                } else {
+                    $data[$key] = self::toArray($value);
+                }
+            }
+        }
+    
+        return $data;
+    }
+
+    /**
+     * Check if a string is a JSON.
+     */
+    static function isJSON($string){
+        return is_string($string) && is_array(json_decode($string, true)) && (json_last_error() == JSON_ERROR_NONE) ? true : false;
+    }
 }
